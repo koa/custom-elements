@@ -137,7 +137,7 @@ pub trait CustomElement: GenericCustomElement + Default {
     ///
     /// #[wasm_bindgen]
     /// extern "C" {
-    ///     #[wasm_bindgen(js_name = HTMLParagraphElement, js_namespace = window)]
+    ///     #[wasm_bindgen(js_name = HTMLParagraphElement, js_namespace = window,thread_local_v2)]
     ///     pub static HtmlParagraphElementConstructor: js_sys::Function;
     /// }
     /// #[derive(Default)]
@@ -149,13 +149,13 @@ pub trait CustomElement: GenericCustomElement + Default {
     ///
     ///
     /// impl CustomElement for MyComponent {
-    ///     fn superclass() -> (Option<&'static str>, &'static js_sys::Function) {
-    ///         (Some("p"), &HtmlParagraphElementConstructor)
+    ///     fn superclass() -> (Option<&'static str>, js_sys::Function) {
+    ///         (Some("p"), HtmlParagraphElementConstructor.with(js_sys::Function::clone))
     ///     }
     /// }
     /// ```
-    fn superclass() -> (Option<&'static str>, &'static js_sys::Function) {
-        (None, &HTML_ELEMENT_CONSTRUCTOR)
+    fn superclass() -> (Option<&'static str>, js_sys::Function) {
+        (None, HTML_ELEMENT_CONSTRUCTOR.with(js_sys::Function::clone))
     }
     /// Must be called somewhere to define the custom element and register it with the DOM Custom Elements Registry.
     ///
@@ -198,7 +198,7 @@ pub trait CustomElement: GenericCustomElement + Default {
 pub fn define_custom_tag<T: GenericCustomElement>(
     tag_name: &str,
     initializer: fn() -> T,
-    superclass_creator: fn() -> (Option<&'static str>, &'static js_sys::Function),
+    superclass_creator: fn() -> (Option<&'static str>, js_sys::Function),
     observed_attributes: &[&str],
     shadow: bool,
 ) {
@@ -299,7 +299,7 @@ pub fn define_custom_tag<T: GenericCustomElement>(
     // call out to JS to define the Custom Element
     let (super_tag, super_constructor) = superclass_creator();
     make_custom_element(
-        super_constructor,
+        &super_constructor,
         tag_name,
         shadow,
         constructor.into_js_value(),
@@ -360,8 +360,8 @@ extern "C" {
     );
 }
 
-#[wasm_bindgen(thread_local)]
+#[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(js_name = HTMLElement, js_namespace = window)]
+    #[wasm_bindgen(js_name = HTMLElement, js_namespace = window, thread_local_v2)]
     pub static HTML_ELEMENT_CONSTRUCTOR: js_sys::Function;
 }
